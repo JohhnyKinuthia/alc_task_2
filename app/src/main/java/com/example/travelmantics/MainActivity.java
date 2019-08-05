@@ -2,6 +2,7 @@ package com.example.travelmantics;
 
 import android.content.Intent;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,6 +19,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -107,13 +109,15 @@ public class MainActivity extends AppCompatActivity {
             final StorageReference ref = FirebaseUtil.mStorageReference.child(imageUri.getLastPathSegment());
             ref.putFile(imageUri).addOnSuccessListener(this, new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
-                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                public void onSuccess(final UploadTask.TaskSnapshot taskSnapshot) {
                     ref.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
                         public void onSuccess(Uri uri) {
                             Log.d("IMAGEURL", "onSuccess: uri= " + uri.toString());
                             String url = uri.toString();
+                            String name = taskSnapshot.getStorage().getPath();
                             deal.setImageUrl(url);
+                            deal.setImageName(name);
                             viewImage(url);
                         }
                     });
@@ -152,6 +156,20 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         mDatabaseReference.child(this.deal.getId()).removeValue();
+        if(deal.getImageName()!=null && deal.getImageName().isEmpty()==false){
+            StorageReference ref = FirebaseUtil.mStorageReference.child(deal.getImageName());
+            ref.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                @Override
+                public void onSuccess(Void aVoid) {
+                    Log.d("Delete Image", "successfully deleted");
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.d("Delete Image", "An error occurred!");
+                }
+            });
+        }
     }
 
     private void launchListActivity() {
